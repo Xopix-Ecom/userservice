@@ -1,0 +1,280 @@
+openapi: 3.0.0
+info:
+  title: Xopix User Service API
+  version: 1.0.0
+  description: API for managing user accounts and profiles within Xopix E-commerce.
+servers:
+  - url: http://localhost:8080/api/users # Base URL for the User Service
+    description: Local development server
+  - url: https://api.xopix.com/users # Example production URL (via API Gateway)
+    description: Production API Gateway endpoint for User Service
+
+tags:
+  - name: Users
+    description: User management operations
+
+paths:
+  /users:
+    post:
+      summary: Register a new user
+      operationId: registerUser
+      tags:
+        - Users
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserRegistrationRequest'
+      responses:
+        '201':
+          description: User registered successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '400':
+          description: Invalid request payload or user already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /users/{userId}:
+    get:
+      summary: Get user profile by ID
+      operationId: getUserById
+      tags:
+        - Users
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          description: ID of the user to retrieve
+          schema:
+            type: string
+            format: uuid # Assuming UUID for user IDs internally
+      security:
+        - BearerAuth: [] # Requires JWT authentication
+      responses:
+        '200':
+          description: User profile retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized - Missing or invalid token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden - Insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    put:
+      summary: Update user profile by ID
+      operationId: updateUserProfile
+      tags:
+        - Users
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          description: ID of the user to update
+          schema:
+            type: string
+            format: uuid
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserUpdateRequest'
+      responses:
+        '200':
+          description: User profile updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '400':
+          description: Invalid request payload
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  schemas:
+    UserRegistrationRequest:
+      type: object
+      required:
+        - email
+        - password
+        - firstName
+        - lastName
+      properties:
+        email:
+          type: string
+          format: email
+          description: User's email address (must be unique)
+          example: john.doe@example.com
+        password:
+          type: string
+          format: password
+          description: User's password (will be hashed)
+          minLength: 8
+          maxLength: 100
+        firstName:
+          type: string
+          description: User's first name
+          example: John
+        lastName:
+          type: string
+          description: User's last name
+          example: Doe
+        phoneNumber:
+          type: string
+          description: User's phone number
+          example: "+1-555-123-4567"
+
+    UserUpdateRequest:
+      type: object
+      properties:
+        firstName:
+          type: string
+          description: User's updated first name
+          example: Jonathan
+        lastName:
+          type: string
+          description: User's updated last name
+          example: Smith
+        phoneNumber:
+          type: string
+          description: User's updated phone number
+          example: "+1-555-987-6543"
+        address: # Example of adding address fields
+          type: object
+          properties:
+            street:
+              type: string
+            city:
+              type: string
+            zipCode:
+              type: string
+            country:
+              type: string
+
+    UserResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique identifier for the user
+          example: "a1b2c3d4-e5f6-7890-1234-567890abcdef"
+        auth0UserId:
+          type: string
+          description: User ID from Auth0 (external identifier)
+          example: "auth0|1234567890abcdef"
+        email:
+          type: string
+          format: email
+          description: User's email address
+          example: john.doe@example.com
+        firstName:
+          type: string
+          description: User's first name
+          example: John
+        lastName:
+          type: string
+          description: User's last name
+          example: Doe
+        phoneNumber:
+          type: string
+          description: User's phone number
+          example: "+1-555-123-4567"
+        createdAt:
+          type: string
+          format: date-time
+          description: Timestamp when the user was created
+        updatedAt:
+          type: string
+          format: date-time
+          description: Timestamp when the user was last updated
+
+    ErrorResponse:
+      type: object
+      properties:
+        timestamp:
+          type: string
+          format: date-time
+          example: "2023-10-27T10:00:00.000Z"
+        status:
+          type: integer
+          example: 404
+        error:
+          type: string
+          example: Not Found
+        message:
+          type: string
+          example: User with ID a1b2c3d4-e5f6-7890-1234-567890abcdef not found.
+        path:
+          type: string
+          example: /api/users/a1b2c3d4-e5f6-7890-1234-567890abcdef
+
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: """JWT Authorization header with Bearer scheme. Example: "Authorization: Bearer {token}"
